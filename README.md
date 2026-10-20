@@ -7,6 +7,12 @@ stack; a focused modernization is planned.
 > **Status:** legacy application under evaluation for modernization. No new
 > implementation has started. See [ROADMAP.md](./ROADMAP.md).
 
+**[Open the legacy Vercel preview](https://color-pallet-drab.vercel.app)**
+
+The preview preserves the historical application for evaluation. It is not the
+final microfrontend and still requires the dependency, accessibility, and
+interaction modernization described below.
+
 ## Existing functionality
 
 - Browse curated starter palettes
