@@ -1,68 +1,57 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Color Palette Studio
 
-## Available Scripts
+A visual workspace for creating, organizing, previewing, and exporting color
+systems. The current React application is functional but uses a legacy frontend
+stack; a focused modernization is planned.
 
-In the project directory, you can run:
+> **Status:** legacy application under evaluation for modernization. No new
+> implementation has started. See [ROADMAP.md](./ROADMAP.md).
 
-### `npm start`
+## Existing functionality
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- Browse curated starter palettes
+- Explore multiple shades for every color
+- Copy color values for use in other tools
+- Create palettes with a visual color picker
+- Drag and reorder colors
+- Validate names and prevent duplicates
+- Save and delete palettes in browser storage
+- Responsive navigation and animated page transitions
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+## Why this project is worth modernizing
 
-### `npm test`
+Unlike a static tutorial page, the existing application already has a complete
+interaction loop: discover, create, organize, persist, and reuse. A rebuild can
+turn that foundation into a credible frontend product case study focused on
+accessibility, state design, interaction quality, and design-token workflows.
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Current stack
 
-### `npm run build`
+- React 16 and Create React App
+- Material UI 3
+- React Router 4
+- Chroma.js
+- Browser local storage
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+These versions are intentionally documented rather than hidden. Dependency,
+accessibility, and browser compatibility work are required before deployment.
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+## Legacy setup
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+npm start
+```
 
-### `npm run eject`
+## Modernization goals
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+- Modern React and TypeScript foundation
+- Keyboard-accessible palette editing and drag/reorder alternatives
+- WCAG contrast analysis and color-vision previews
+- Import/export for CSS variables, design tokens, JSON, and common tools
+- Shareable palettes and reliable persistence
+- Automated component, interaction, accessibility, and end-to-end tests
+- Documented performance and architecture decisions
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
-
-### Analyzing the Bundle Size
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
-
-### Making a Progressive Web App
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
-
-### Advanced Configuration
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+The exact framework, component system, persistence model, and deployment tools
+will be selected before implementation begins.
