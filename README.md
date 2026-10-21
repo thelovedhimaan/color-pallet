@@ -1,63 +1,52 @@
 # Color Palette Studio
 
-A visual workspace for creating, organizing, previewing, and exporting color
-systems. The current React application is functional but uses a legacy frontend
-stack; a focused modernization is planned.
+A modern React workspace for creating, testing, sharing, and exporting accessible
+color systems.
 
-> **Status:** legacy application under evaluation for modernization. No new
-> implementation has started. See [ROADMAP.md](./ROADMAP.md).
+**[Open the production app](https://color-pallet-drab.vercel.app)** ·
+[Architecture](./docs/ARCHITECTURE.md) · [Modernization audit](./docs/AUDIT.md) ·
+[Roadmap](./ROADMAP.md)
 
-**[Open the legacy Vercel preview](https://color-pallet-drab.vercel.app)**
+## Product capabilities
 
-The preview preserves the historical application for evaluation. It is not the
-final microfrontend and still requires the dependency, accessibility, and
-interaction modernization described below.
+- Create, edit, order, duplicate, search, and organize palettes
+- Copy values in HEX, RGB, and HSL formats
+- Undo and redo editing decisions
+- Measure every color pairing against WCAG contrast thresholds
+- Preview protanopia, deuteranopia, tritanopia, and achromatopsia simulations
+- Export CSS variables, portable JSON, and W3C-shaped design tokens
+- Share palettes with stable URLs and open a distraction-free presentation mode
+- Save local versions, restore checkpoints, and import palette JSON
+- Persist validated work in browser storage without requiring an account
 
-## Existing functionality
+## Modern stack
 
-- Browse curated starter palettes
-- Explore multiple shades for every color
-- Copy color values for use in other tools
-- Create palettes with a visual color picker
-- Drag and reorder colors
-- Validate names and prevent duplicates
-- Save and delete palettes in browser storage
-- Responsive navigation and animated page transitions
+- React 19 and strict TypeScript
+- Vite 6 static production build
+- Native CSS design system with responsive and reduced-motion behavior
+- Vitest and Testing Library
+- GitHub Actions quality checks
+- Vercel deployment configuration
 
-## Why this project is worth modernizing
-
-Unlike a static tutorial page, the existing application already has a complete
-interaction loop: discover, create, organize, persist, and reuse. A rebuild can
-turn that foundation into a credible frontend product case study focused on
-accessibility, state design, interaction quality, and design-token workflows.
-
-## Current stack
-
-- React 16 and Create React App
-- Material UI 3
-- React Router 4
-- Chroma.js
-- Browser local storage
-
-These versions are intentionally documented rather than hidden. Dependency,
-accessibility, and browser compatibility work are required before deployment.
-
-## Legacy setup
+## Local development
 
 ```bash
 npm install
-npm start
+npm run dev
 ```
 
-## Modernization goals
+Run the complete verification suite:
 
-- Modern React and TypeScript foundation
-- Keyboard-accessible palette editing and drag/reorder alternatives
-- WCAG contrast analysis and color-vision previews
-- Import/export for CSS variables, design tokens, JSON, and common tools
-- Shareable palettes and reliable persistence
-- Automated component, interaction, accessibility, and end-to-end tests
-- Documented performance and architecture decisions
+```bash
+npm run check
+npm run build
+```
 
-The exact framework, component system, persistence model, and deployment tools
-will be selected before implementation begins.
+The build enforces uncompressed budgets of 250 KiB for JavaScript and 80 KiB
+for CSS.
+
+## Data and privacy
+
+Palette data stays in the browser unless a user exports it or creates a share
+URL. Share URLs contain the selected palette. No account or remote database is
+required for the complete editing workflow.
