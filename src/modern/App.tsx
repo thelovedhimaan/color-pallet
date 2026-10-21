@@ -52,6 +52,13 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, []);
   useEffect(() => {
+    const exitPresentation = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPresentation(false);
+    };
+    window.addEventListener("keydown", exitPresentation);
+    return () => window.removeEventListener("keydown", exitPresentation);
+  }, []);
+  useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(""), 2200);
     return () => window.clearTimeout(timeout);
@@ -173,7 +180,7 @@ export default function App() {
         <div className="top-actions">
           <button className="icon-button" onClick={undo} disabled={!history.length} aria-label="Undo">↶</button>
           <button className="icon-button" onClick={redo} disabled={!future.length} aria-label="Redo">↷</button>
-          <button className="button secondary" onClick={() => setPresentation(!presentation)}>{presentation ? "Exit presentation" : "Present"}</button>
+          <button className="button secondary presentation-toggle" onClick={() => setPresentation(!presentation)}>{presentation ? "← Exit presentation" : "Present"}</button>
           <button className="button secondary new-palette" onClick={createPalette}>+ New palette</button>
           <button className="button primary" onClick={share} disabled={isSharing}>{isSharing ? <><span className="spinner" /> Sharing…</> : "Share palette"}</button>
         </div>
