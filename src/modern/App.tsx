@@ -236,7 +236,11 @@ function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, 
   };
   return <>
     <div className="content-header">
-      <div><span className="eyebrow">Active palette</span><input className="title-input" value={palette.name} onChange={(event) => onMeta("name", event.target.value)} aria-label="Palette name" /><input className="description-input" value={palette.description} onChange={(event) => onMeta("description", event.target.value)} aria-label="Palette description" /></div>
+      <div className="palette-meta">
+        <div className="meta-heading"><span className="eyebrow">Active palette</span><span className="edit-hint">✎ Click a field to edit</span></div>
+        <label className="editable-field title-field"><span>Palette name</span><input className="title-input" value={palette.name} onChange={(event) => onMeta("name", event.target.value)} aria-label="Palette name" title="Edit palette name" /></label>
+        <label className="editable-field description-field"><span>Description</span><input className="description-input" value={palette.description} onChange={(event) => onMeta("description", event.target.value)} aria-label="Palette description" title="Edit palette description" /></label>
+      </div>
       <div className="header-controls"><div className="toolbar"><label>Format<select value={format} onChange={(event) => onFormat(event.target.value as ColorFormat)}><option value="hex">HEX</option><option value="rgb">RGB</option><option value="hsl">HSL</option></select></label><label>Vision preview<select value={vision} onChange={(event) => onVision(event.target.value as VisionMode)}><option value="normal">Standard</option><option value="protanopia">Protanopia</option><option value="deuteranopia">Deuteranopia</option><option value="tritanopia">Tritanopia</option><option value="achromatopsia">Achromatopsia</option></select></label></div><button className="button primary add-color-action" onClick={() => setShowColorComposer((visible) => !visible)}>{showColorComposer ? "Close" : "+ Add color"}</button></div>
     </div>
     {showColorComposer && <form className="color-composer" onSubmit={submitColor}>
