@@ -41,10 +41,16 @@ export default function App() {
   const [history, setHistory] = useState<StudioState[]>([]);
   const [future, setFuture] = useState<StudioState[]>([]);
   const [presentation, setPresentation] = useState(new URLSearchParams(window.location.search).get("mode") === "present");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const active = state.palettes.find((palette) => palette.id === state.activePaletteId) || state.palettes[0];
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }, [state]);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setIsLoading(false), 450);
+    return () => window.clearTimeout(timeout);
+  }, []);
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(""), 2200);
@@ -103,11 +109,16 @@ export default function App() {
     setNotice(message);
   };
   const share = async () => {
-    const encoded = btoa(encodeURIComponent(JSON.stringify(active)));
-    const url = `${window.location.origin}${window.location.pathname}?palette=${encoded}`;
-    await copy(url, "Share link copied");
+    setIsSharing(true);
+    try {
+      const encoded = btoa(encodeURIComponent(JSON.stringify(active)));
+      const url = `${window.location.origin}${window.location.pathname}?palette=${encoded}`;
+      await copy(url, "Share link copied");
+    } finally {
+      window.setTimeout(() => setIsSharing(false), 300);
+    }
   };
-  const saveVersion = () => updateActive((palette) => palette.versions.unshift({ id: uid("version"), savedAt: new Date().toISOString(), colors: clone(palette.colors) }));
+  const saveVersion = (name: string) => updateActive((palette) => palette.versions.unshift({ id: uid("version"), name, savedAt: new Date().toISOString(), colors: clone(palette.colors) }));
   const restoreVersion = (id: string) => updateActive((palette) => {
     const version = palette.versions.find((item) => item.id === id);
     if (version) palette.colors = clone(version.colors);
@@ -145,6 +156,11 @@ export default function App() {
 
   return (
     <div className={presentation ? "app presentation" : "app"}>
+      <div className={isLoading ? "loading-screen" : "loading-screen loaded"} aria-hidden={!isLoading}>
+        <span className="loader-mark">✦</span>
+        <span className="loader-line" />
+        <strong>Preparing your palettes</strong>
+      </div>
       <a className="skip-link" href="#main">Skip to workspace</a>
       <header className="topbar">
         <button className="brand" onClick={() => setView("studio")} aria-label="Open Color Palette Studio">
@@ -158,13 +174,14 @@ export default function App() {
           <button className="icon-button" onClick={undo} disabled={!history.length} aria-label="Undo">↶</button>
           <button className="icon-button" onClick={redo} disabled={!future.length} aria-label="Redo">↷</button>
           <button className="button secondary" onClick={() => setPresentation(!presentation)}>{presentation ? "Exit presentation" : "Present"}</button>
-          <button className="button primary" onClick={share}>Share palette</button>
+          <button className="button secondary new-palette" onClick={createPalette}>+ New palette</button>
+          <button className="button primary" onClick={share} disabled={isSharing}>{isSharing ? <><span className="spinner" /> Sharing…</> : "Share palette"}</button>
         </div>
       </header>
 
       <main id="main" className="workspace">
         <aside className="sidebar" aria-label="Palettes">
-          <div className="sidebar-heading"><span>Palettes</span><button className="icon-button" onClick={createPalette} aria-label="Create palette">+</button></div>
+          <div className="sidebar-heading"><span>Palettes</span><small>{state.palettes.length}</small></div>
           <label className="search"><span className="sr-only">Search palettes</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search palettes…" /></label>
           <div className="palette-list">
             {visiblePalettes.map((palette) => (
@@ -178,7 +195,7 @@ export default function App() {
           <button className="button secondary full" onClick={() => importRef.current?.click()}>Import JSON</button>
         </aside>
 
-        <section className="content" aria-live="polite">
+        <section className="content content-enter" key={`${view}-${active.id}`} aria-live="polite">
           {view === "studio" && <Studio palette={active} format={format} vision={vision} onFormat={setFormat} onVision={setVision} onMeta={(field, value) => updateActive((palette) => { palette[field] = value; })} onColor={changeColor} onMove={moveColor} onAdd={addColor} onRemove={removeColor} onCopy={copy} onVersion={saveVersion} onRestore={restoreVersion} />}
           {view === "contrast" && <Contrast palette={active} />}
           {view === "export" && <ExportPanel palette={active} json={exportJson} onCopy={copy} />}
@@ -190,21 +207,37 @@ export default function App() {
   );
 }
 
-function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, onMove, onAdd, onRemove, onCopy, onVersion, onRestore }: { palette: Palette; format: ColorFormat; vision: VisionMode; onFormat: (value: ColorFormat) => void; onVision: (value: VisionMode) => void; onMeta: (field: "name" | "description" | "collection", value: string) => void; onColor: (id: string, patch: Partial<PaletteColor>) => void; onMove: (index: number, offset: number) => void; onAdd: (name: string, value: string) => void; onRemove: (id: string) => void; onCopy: (value: string) => void; onVersion: () => void; onRestore: (id: string) => void; }) {
+function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, onMove, onAdd, onRemove, onCopy, onVersion, onRestore }: { palette: Palette; format: ColorFormat; vision: VisionMode; onFormat: (value: ColorFormat) => void; onVision: (value: VisionMode) => void; onMeta: (field: "name" | "description" | "collection", value: string) => void; onColor: (id: string, patch: Partial<PaletteColor>) => void; onMove: (index: number, offset: number) => void; onAdd: (name: string, value: string) => void; onRemove: (id: string) => void; onCopy: (value: string) => void; onVersion: (name: string) => void; onRestore: (id: string) => void; }) {
   const [newColorName, setNewColorName] = useState("New color");
   const [newColorValue, setNewColorValue] = useState("#61DAFB");
+  const [showColorComposer, setShowColorComposer] = useState(false);
+  const [checkpointName, setCheckpointName] = useState("");
   const submitColor = (event: React.FormEvent) => {
     event.preventDefault();
     const value = normalizeHex(newColorValue);
     if (!value) return;
     onAdd(newColorName, value);
     setNewColorName("New color");
+    setShowColorComposer(false);
+  };
+  const submitCheckpoint = (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = checkpointName.trim();
+    if (!name) return;
+    onVersion(name);
+    setCheckpointName("");
   };
   return <>
     <div className="content-header">
       <div><span className="eyebrow">Active palette</span><input className="title-input" value={palette.name} onChange={(event) => onMeta("name", event.target.value)} aria-label="Palette name" /><input className="description-input" value={palette.description} onChange={(event) => onMeta("description", event.target.value)} aria-label="Palette description" /></div>
-      <div className="toolbar"><label>Format<select value={format} onChange={(event) => onFormat(event.target.value as ColorFormat)}><option value="hex">HEX</option><option value="rgb">RGB</option><option value="hsl">HSL</option></select></label><label>Vision preview<select value={vision} onChange={(event) => onVision(event.target.value as VisionMode)}><option value="normal">Standard</option><option value="protanopia">Protanopia</option><option value="deuteranopia">Deuteranopia</option><option value="tritanopia">Tritanopia</option><option value="achromatopsia">Achromatopsia</option></select></label></div>
+      <div className="header-controls"><div className="toolbar"><label>Format<select value={format} onChange={(event) => onFormat(event.target.value as ColorFormat)}><option value="hex">HEX</option><option value="rgb">RGB</option><option value="hsl">HSL</option></select></label><label>Vision preview<select value={vision} onChange={(event) => onVision(event.target.value as VisionMode)}><option value="normal">Standard</option><option value="protanopia">Protanopia</option><option value="deuteranopia">Deuteranopia</option><option value="tritanopia">Tritanopia</option><option value="achromatopsia">Achromatopsia</option></select></label></div><button className="button primary add-color-action" onClick={() => setShowColorComposer((visible) => !visible)}>{showColorComposer ? "Close" : "+ Add color"}</button></div>
     </div>
+    {showColorComposer && <form className="color-composer" onSubmit={submitColor}>
+      <div className="composer-preview" style={{ background: newColorValue }}><span>Live preview</span><strong>{newColorValue}</strong></div>
+      <label>Name<input value={newColorName} onChange={(event) => setNewColorName(event.target.value)} placeholder="Color name" autoFocus required /></label>
+      <label>HEX<div className="color-input"><input type="color" value={newColorValue} onChange={(event) => setNewColorValue(event.target.value.toUpperCase())} /><input value={newColorValue} onChange={(event) => setNewColorValue(event.target.value.toUpperCase())} pattern="#[0-9A-Fa-f]{6}" aria-label="New color hex value" required /></div></label>
+      <button className="button primary" type="submit">Add to palette</button>
+    </form>}
     <div className="palette-grid">
       {palette.colors.map((color, index) => {
         const preview = simulateVision(color.value, vision);
@@ -215,19 +248,8 @@ function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, 
           <div className="card-actions"><button onClick={() => onMove(index, -1)} disabled={index === 0} aria-label={`Move ${color.name} left`}>←</button><button onClick={() => onMove(index, 1)} disabled={index === palette.colors.length - 1} aria-label={`Move ${color.name} right`}>→</button><button onClick={() => onRemove(color.id)} disabled={palette.colors.length <= 2} aria-label={`Delete ${color.name}`}>Delete</button></div>
         </article>;
       })}
-      <form className="add-card" onSubmit={submitColor}>
-        <div className="add-preview" style={{ background: newColorValue }}>
-          <span>New swatch</span>
-          <strong>{newColorValue}</strong>
-        </div>
-        <div className="add-fields">
-          <label>Name<input value={newColorName} onChange={(event) => setNewColorName(event.target.value)} placeholder="Color name" required /></label>
-          <label>Color<div className="color-input"><input type="color" value={newColorValue} onChange={(event) => setNewColorValue(event.target.value.toUpperCase())} /><input value={newColorValue} onChange={(event) => setNewColorValue(event.target.value.toUpperCase())} pattern="#[0-9A-Fa-f]{6}" aria-label="New color hex value" required /></div></label>
-          <button className="button primary full" type="submit">+ Add to palette</button>
-        </div>
-      </form>
     </div>
-    <section className="version-panel"><div><span className="eyebrow">Version history</span><h2>Save a checkpoint</h2><p>Capture the current color order and values before exploring another direction.</p></div><button className="button secondary" onClick={onVersion}>Save version</button>{palette.versions.slice(0, 4).map((version) => <button className="version" key={version.id} onClick={() => onRestore(version.id)}><span className="mini-colors">{version.colors.slice(0, 5).map((color) => <i key={color.id} style={{ background: color.value }} />)}</span><span>{new Date(version.savedAt).toLocaleString()}</span></button>)}</section>
+    <section className="version-panel"><div className="checkpoint-copy"><span className="eyebrow">Version history</span><h2>Save a checkpoint</h2><p>Name this palette state so it is easy to recognize and restore later.</p></div><form className="checkpoint-form" onSubmit={submitCheckpoint}><label htmlFor="checkpoint-name">Checkpoint name</label><div><input id="checkpoint-name" value={checkpointName} onChange={(event) => setCheckpointName(event.target.value)} placeholder="e.g. Client review" required /><button className="button secondary" type="submit">Save checkpoint</button></div></form><div className="version-list">{palette.versions.slice(0, 4).map((version) => <button className="version" key={version.id} onClick={() => onRestore(version.id)}><span className="mini-colors">{version.colors.slice(0, 5).map((color) => <i key={color.id} style={{ background: color.value }} />)}</span><span><strong>{version.name || "Untitled checkpoint"}</strong><small>{new Date(version.savedAt).toLocaleString()}</small></span></button>)}</div></section>
   </>;
 }
 
