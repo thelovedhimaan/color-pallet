@@ -89,7 +89,11 @@ export default function App() {
     if (destination < 0 || destination >= palette.colors.length) return;
     [palette.colors[index], palette.colors[destination]] = [palette.colors[destination], palette.colors[index]];
   });
-  const addColor = () => updateActive((palette) => palette.colors.push({ id: uid("color"), name: "New color", value: "#61DAFB" }));
+  const addColor = (name: string, value: string) => updateActive((palette) => palette.colors.push({
+    id: uid(slugify(name) || "color"),
+    name: name.trim() || "Untitled color",
+    value,
+  }));
   const removeColor = (id: string) => updateActive((palette) => {
     if (palette.colors.length > 2) palette.colors = palette.colors.filter((color) => color.id !== id);
   });
@@ -186,7 +190,16 @@ export default function App() {
   );
 }
 
-function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, onMove, onAdd, onRemove, onCopy, onVersion, onRestore }: { palette: Palette; format: ColorFormat; vision: VisionMode; onFormat: (value: ColorFormat) => void; onVision: (value: VisionMode) => void; onMeta: (field: "name" | "description" | "collection", value: string) => void; onColor: (id: string, patch: Partial<PaletteColor>) => void; onMove: (index: number, offset: number) => void; onAdd: () => void; onRemove: (id: string) => void; onCopy: (value: string) => void; onVersion: () => void; onRestore: (id: string) => void; }) {
+function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, onMove, onAdd, onRemove, onCopy, onVersion, onRestore }: { palette: Palette; format: ColorFormat; vision: VisionMode; onFormat: (value: ColorFormat) => void; onVision: (value: VisionMode) => void; onMeta: (field: "name" | "description" | "collection", value: string) => void; onColor: (id: string, patch: Partial<PaletteColor>) => void; onMove: (index: number, offset: number) => void; onAdd: (name: string, value: string) => void; onRemove: (id: string) => void; onCopy: (value: string) => void; onVersion: () => void; onRestore: (id: string) => void; }) {
+  const [newColorName, setNewColorName] = useState("New color");
+  const [newColorValue, setNewColorValue] = useState("#61DAFB");
+  const submitColor = (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = normalizeHex(newColorValue);
+    if (!value) return;
+    onAdd(newColorName, value);
+    setNewColorName("New color");
+  };
   return <>
     <div className="content-header">
       <div><span className="eyebrow">Active palette</span><input className="title-input" value={palette.name} onChange={(event) => onMeta("name", event.target.value)} aria-label="Palette name" /><input className="description-input" value={palette.description} onChange={(event) => onMeta("description", event.target.value)} aria-label="Palette description" /></div>
@@ -202,7 +215,17 @@ function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, 
           <div className="card-actions"><button onClick={() => onMove(index, -1)} disabled={index === 0} aria-label={`Move ${color.name} left`}>←</button><button onClick={() => onMove(index, 1)} disabled={index === palette.colors.length - 1} aria-label={`Move ${color.name} right`}>→</button><button onClick={() => onRemove(color.id)} disabled={palette.colors.length <= 2} aria-label={`Delete ${color.name}`}>Delete</button></div>
         </article>;
       })}
-      <button className="add-card" onClick={onAdd}><span>+</span>Add color</button>
+      <form className="add-card" onSubmit={submitColor}>
+        <div className="add-preview" style={{ background: newColorValue }}>
+          <span>New swatch</span>
+          <strong>{newColorValue}</strong>
+        </div>
+        <div className="add-fields">
+          <label>Name<input value={newColorName} onChange={(event) => setNewColorName(event.target.value)} placeholder="Color name" required /></label>
+          <label>Color<div className="color-input"><input type="color" value={newColorValue} onChange={(event) => setNewColorValue(event.target.value.toUpperCase())} /><input value={newColorValue} onChange={(event) => setNewColorValue(event.target.value.toUpperCase())} pattern="#[0-9A-Fa-f]{6}" aria-label="New color hex value" required /></div></label>
+          <button className="button primary full" type="submit">+ Add to palette</button>
+        </div>
+      </form>
     </div>
     <section className="version-panel"><div><span className="eyebrow">Version history</span><h2>Save a checkpoint</h2><p>Capture the current color order and values before exploring another direction.</p></div><button className="button secondary" onClick={onVersion}>Save version</button>{palette.versions.slice(0, 4).map((version) => <button className="version" key={version.id} onClick={() => onRestore(version.id)}><span className="mini-colors">{version.colors.slice(0, 5).map((color) => <i key={color.id} style={{ background: color.value }} />)}</span><span>{new Date(version.savedAt).toLocaleString()}</span></button>)}</section>
   </>;
