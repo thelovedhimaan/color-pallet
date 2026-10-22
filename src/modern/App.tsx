@@ -1,26 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { seedPalettes } from "../seed";
-import { contrastRatio, exportCss, exportTokens, formatColor, normalizeHex, simulateVision, slugify, validatePalette, validateState } from "../palette-utils";
+import { contrastRatio, exportCss, exportTokens, formatColor, normalizeHex, simulateVision, slugify, validatePalette } from "../palette-utils";
+import { cloudConfigured, getSupabase, loadSharedPalette, loadUserPalettes, publishPalette, removeUserPalette, saveUserPalettes, signInWithGoogle, signOut, type Account } from "../cloud";
 import type { ColorFormat, Palette, PaletteColor, StudioState, VisionMode } from "../types";
 
 type View = "studio" | "contrast" | "export" | "library";
-const STORAGE_KEY = "color-palette-studio-v2";
+const EXAMPLE_ID = seedPalettes[0].id;
 
 function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)); }
 function uid(prefix: string): string { return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
 function initialState(): StudioState {
-  const shared = new URLSearchParams(window.location.search).get("palette");
-  if (shared) {
-    try {
-      const palette = JSON.parse(decodeURIComponent(atob(shared)));
-      if (validatePalette(palette)) return { palettes: [palette], activePaletteId: palette.id };
-    } catch { /* Ignore malformed shared links. */ }
-  }
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (validateState(saved)) return saved;
-  } catch { /* Fall back to seeds. */ }
-  return { palettes: clone(seedPalettes), activePaletteId: seedPalettes[0].id };
+  return { palettes: [clone(seedPalettes[0])], activePaletteId: EXAMPLE_ID };
 }
 
 function download(name: string, value: string, type = "text/plain") {
@@ -43,14 +33,63 @@ export default function App() {
   const [presentation, setPresentation] = useState(new URLSearchParams(window.location.search).get("mode") === "present");
   const [isLoading, setIsLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [sharedView, setSharedView] = useState(false);
+  const [hasLoadedAccount, setHasLoadedAccount] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const active = state.palettes.find((palette) => palette.id === state.activePaletteId) || state.palettes[0];
+  const readOnly = sharedView || !account || active.id === EXAMPLE_ID;
 
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }, [state]);
   useEffect(() => {
-    const timeout = window.setTimeout(() => setIsLoading(false), 450);
-    return () => window.clearTimeout(timeout);
+    let current = true;
+    let unsubscribe: (() => void) | undefined;
+    const hydrate = async (nextAccount: Account | null) => {
+      setIsLoading(true);
+      try {
+        const shareId = new URLSearchParams(window.location.search).get("share");
+        if (shareId) {
+          const palette = await loadSharedPalette(shareId);
+          if (current && palette) {
+            setSharedView(true);
+            setState({ palettes: [palette], activePaletteId: palette.id });
+            return;
+          }
+          if (current) setNotice("That shared palette is unavailable");
+        }
+        const owned = nextAccount ? await loadUserPalettes(nextAccount.id) : [];
+        if (current) {
+          setSharedView(false);
+          setState({ palettes: [clone(seedPalettes[0]), ...owned], activePaletteId: owned[0]?.id || EXAMPLE_ID });
+        }
+      } catch (error) {
+        if (current) setNotice(error instanceof Error ? error.message : "Could not load palettes");
+      } finally {
+        if (current) { setHasLoadedAccount(true); setIsLoading(false); }
+      }
+    };
+    void getSupabase().then((supabase) => {
+      if (!supabase) { void hydrate(null); return; }
+      void supabase.auth.getSession().then(({ data }) => {
+        const nextAccount = data.session?.user || null;
+        if (current) setAccount(nextAccount);
+        return hydrate(nextAccount);
+      });
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        const nextAccount = session?.user || null;
+        if (current) { setAccount(nextAccount); void hydrate(nextAccount); }
+      });
+      unsubscribe = () => listener.subscription.unsubscribe();
+    });
+    return () => { current = false; unsubscribe?.(); };
   }, []);
+  useEffect(() => {
+    if (!account || !hasLoadedAccount || sharedView) return;
+    const owned = state.palettes.filter((palette) => palette.id !== EXAMPLE_ID);
+    const timeout = window.setTimeout(() => {
+      void saveUserPalettes(account.id, owned).catch((error) => setNotice(error instanceof Error ? error.message : "Cloud save failed"));
+    }, 650);
+    return () => window.clearTimeout(timeout);
+  }, [account, hasLoadedAccount, sharedView, state.palettes]);
   useEffect(() => {
     const exitPresentation = (event: KeyboardEvent) => {
       if (event.key === "Escape") setPresentation(false);
@@ -72,12 +111,15 @@ export default function App() {
     setState(next);
   };
 
-  const updateActive = (change: (palette: Palette) => void) => commit((draft) => {
-    const palette = draft.palettes.find((item) => item.id === draft.activePaletteId);
-    if (!palette) return;
-    change(palette);
-    palette.updatedAt = new Date().toISOString();
-  });
+  const updateActive = (change: (palette: Palette) => void) => {
+    if (!account || readOnly) { setNotice(account ? "Duplicate the example to edit your own copy" : "Sign in with Google to create and edit palettes"); return; }
+    commit((draft) => {
+      const palette = draft.palettes.find((item) => item.id === draft.activePaletteId);
+      if (!palette) return;
+      change(palette);
+      palette.updatedAt = new Date().toISOString();
+    });
+  };
 
   const undo = () => {
     const previous = history[history.length - 1];
@@ -116,11 +158,14 @@ export default function App() {
     setNotice(message);
   };
   const share = async () => {
+    if (!account || readOnly) { setNotice("Sign in and open one of your palettes to share it"); return; }
     setIsSharing(true);
     try {
-      const encoded = btoa(encodeURIComponent(JSON.stringify(active)));
-      const url = `${window.location.origin}${window.location.pathname}?palette=${encoded}`;
+      const shareId = await publishPalette(account.id, active);
+      const url = `${window.location.origin}${window.location.pathname}?share=${shareId}`;
       await copy(url, "Share link copied");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not create share link");
     } finally {
       window.setTimeout(() => setIsSharing(false), 300);
     }
@@ -130,24 +175,34 @@ export default function App() {
     const version = palette.versions.find((item) => item.id === id);
     if (version) palette.colors = clone(version.colors);
   });
-  const duplicate = (palette: Palette) => commit((draft) => {
+  const duplicate = (palette: Palette) => {
+    if (!account) { setNotice("Sign in with Google to save a copy"); return; }
+    commit((draft) => {
     const copyPalette = { ...clone(palette), id: uid(slugify(palette.name)), name: `${palette.name} copy`, versions: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     draft.palettes.push(copyPalette);
     draft.activePaletteId = copyPalette.id;
     setView("studio");
-  });
-  const createPalette = () => commit((draft) => {
+    });
+  };
+  const createPalette = () => {
+    if (!account) { setNotice("Sign in with Google to create a palette"); return; }
+    commit((draft) => {
     const palette: Palette = { id: uid("untitled"), name: "Untitled palette", description: "A new color system.", collection: "Unsorted", colors: [{ id: uid("ink"), name: "Ink", value: "#20232A" }, { id: uid("accent"), name: "Accent", value: "#61DAFB" }, { id: uid("surface"), name: "Surface", value: "#F3F7FA" }], versions: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     draft.palettes.push(palette);
     draft.activePaletteId = palette.id;
     setView("studio");
-  });
-  const deletePalette = (id: string) => commit((draft) => {
-    if (draft.palettes.length <= 1) return;
+    });
+  };
+  const deletePalette = (id: string) => {
+    if (!account || id === EXAMPLE_ID) { setNotice("The example palette is kept for everyone"); return; }
+    commit((draft) => {
     draft.palettes = draft.palettes.filter((palette) => palette.id !== id);
     if (draft.activePaletteId === id) draft.activePaletteId = draft.palettes[0].id;
-  });
+    });
+    void removeUserPalette(id).catch((error) => setNotice(error instanceof Error ? error.message : "Could not delete palette"));
+  };
   const importPalette = async (file?: File) => {
+    if (!account) { setNotice("Sign in with Google before importing a palette"); return; }
     if (!file) return;
     try {
       const candidate = JSON.parse(await file.text());
@@ -157,6 +212,18 @@ export default function App() {
       setNotice("Palette imported");
     } catch (error) { setNotice(error instanceof Error ? error.message : "Import failed"); }
   };
+
+  const openGoogleSignIn = async () => {
+    if (!cloudConfigured) { setNotice("Google sign-in needs the Supabase project connection"); return; }
+    try { await signInWithGoogle(); }
+    catch (error) { setNotice(error instanceof Error ? error.message : "Could not start Google sign-in"); }
+  };
+  const closeAccount = async () => {
+    try { await signOut(); setNotice("Signed out"); }
+    catch (error) { setNotice(error instanceof Error ? error.message : "Could not sign out"); }
+  };
+  const accountName = account?.user_metadata?.full_name || account?.user_metadata?.name || account?.email || "Account";
+  const accountInitial = String(accountName).trim().charAt(0).toUpperCase() || "U";
 
   const visiblePalettes = useMemo(() => state.palettes.filter((palette) => `${palette.name} ${palette.collection} ${palette.description}`.toLowerCase().includes(search.toLowerCase())), [search, state.palettes]);
   const exportJson = JSON.stringify(active, null, 2);
@@ -183,6 +250,7 @@ export default function App() {
           <button className="button secondary presentation-toggle" onClick={() => setPresentation(!presentation)}>{presentation ? "← Exit presentation" : "Present"}</button>
           <button className="button secondary new-palette" onClick={createPalette}>+ New palette</button>
           <button className="button primary" onClick={share} disabled={isSharing}>{isSharing ? <><span className="spinner" /> Sharing…</> : "Share palette"}</button>
+          {account ? <div className="account-chip"><span className="account-avatar" aria-hidden="true">{accountInitial}</span><span className="account-copy"><strong>{accountName}</strong><small>Private workspace</small></span><button onClick={closeAccount}>Sign out</button></div> : <button className="button google-button" onClick={openGoogleSignIn}><GoogleMark />Sign in with Google</button>}
         </div>
       </header>
 
@@ -203,6 +271,7 @@ export default function App() {
         </aside>
 
         <section className="content content-enter" key={`${view}-${active.id}`} aria-live="polite">
+          {sharedView && <div className="shared-banner"><span><strong>Shared palette</strong><small>This link is read-only. Sign in and duplicate it to keep your own editable copy.</small></span><button className="button secondary" onClick={() => duplicate(active)}>Duplicate to my palettes</button></div>}
           {view === "studio" && <Studio palette={active} format={format} vision={vision} onFormat={setFormat} onVision={setVision} onMeta={(field, value) => updateActive((palette) => { palette[field] = value; })} onColor={changeColor} onMove={moveColor} onAdd={addColor} onRemove={removeColor} onCopy={copy} onVersion={saveVersion} onRestore={restoreVersion} />}
           {view === "contrast" && <Contrast palette={active} />}
           {view === "export" && <ExportPanel palette={active} json={exportJson} onCopy={copy} />}
@@ -212,6 +281,10 @@ export default function App() {
       {notice && <div className="toast" role="status">{notice}</div>}
     </div>
   );
+}
+
+function GoogleMark() {
+  return <svg className="google-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.3c1.9-1.8 2.9-4.4 2.9-7.4Z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.7-2.4l-3.3-2.5c-.9.6-2.1 1-3.4 1a5.9 5.9 0 0 1-5.5-4.1H3.1v2.6A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.5 14a6 6 0 0 1 0-3.9V7.4H3.1a10 10 0 0 0 0 9.2L6.5 14Z"/><path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.9 1.5l2.9-2.9A9.7 9.7 0 0 0 3.1 7.4l3.4 2.7A5.9 5.9 0 0 1 12 5.9Z"/></svg>;
 }
 
 function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, onMove, onAdd, onRemove, onCopy, onVersion, onRestore }: { palette: Palette; format: ColorFormat; vision: VisionMode; onFormat: (value: ColorFormat) => void; onVision: (value: VisionMode) => void; onMeta: (field: "name" | "description" | "collection", value: string) => void; onColor: (id: string, patch: Partial<PaletteColor>) => void; onMove: (index: number, offset: number) => void; onAdd: (name: string, value: string) => void; onRemove: (id: string) => void; onCopy: (value: string) => void; onVersion: (name: string) => void; onRestore: (id: string) => void; }) {

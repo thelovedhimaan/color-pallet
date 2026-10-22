@@ -12,6 +12,7 @@
     "check": "tsc -b && vitest run"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.49.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

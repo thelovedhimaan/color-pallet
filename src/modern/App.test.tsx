@@ -6,6 +6,7 @@ describe("Color Palette Studio", () => {
   it("renders the palette workflow with accessible navigation", () => {
     render(<App />);
     expect(screen.getByRole("navigation", { name: "Workspace" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in with google/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /share palette/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Palette name")).toHaveValue("React Interface");
   });

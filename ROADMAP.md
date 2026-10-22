@@ -28,10 +28,10 @@
 ## Phase 3 — Sharing and collaboration ✅
 
 - [x] Add stable shareable palette URLs
-- [x] Keep the full workflow account-free and local-first
-- [x] Add local version history, duplication, search, and collections
+- [x] Add Google sign-in with isolated per-user palette storage
+- [x] Add cloud version history, duplication, search, and collections
 - [x] Add import, presentation, and read-only-friendly shared views
-- [x] Define the storage boundary for a future authenticated cloud adapter
+- [x] Add Supabase row-level security and public read-only palette snapshots
 
 ## Phase 4 — Case study and launch 🚧
 
@@ -41,7 +41,8 @@
 - [x] Publish architecture decisions and the migration audit
 - [x] Add CI checks for types, tests, build, and budgets
 - [ ] Capture hosted Lighthouse evidence after the production deployment updates
-- [ ] Connect an authentication and cloud-storage provider when credentials and a data-retention policy are selected
+- [x] Implement the authentication and cloud-storage provider integration
+- [ ] Configure the production Supabase and Google OAuth credentials
 
 ## Verified baseline
 
