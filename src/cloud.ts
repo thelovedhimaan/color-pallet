@@ -3,14 +3,14 @@ import { validatePalette } from "./palette-utils";
 import type { Palette } from "./types";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const publishableKey = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined;
 
-export const cloudConfigured = Boolean(url && anonKey);
+export const cloudConfigured = Boolean(url && publishableKey);
 let clientPromise: Promise<SupabaseClient | null> | null = null;
 
 export function getSupabase() {
   if (!cloudConfigured) return Promise.resolve(null);
-  if (!clientPromise) clientPromise = import("@supabase/supabase-js").then(({ createClient }) => createClient(url!, anonKey!, {
+  if (!clientPromise) clientPromise = import("@supabase/supabase-js").then(({ createClient }) => createClient(url!, publishableKey!, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
   }));
   return clientPromise;

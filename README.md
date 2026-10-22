@@ -83,7 +83,7 @@ The production build enforces uncompressed budgets of 250 KiB for JavaScript and
 
 ## Google sign-in and cloud setup
 
-Copy `.env.example` to `.env.local`, create a Supabase project, and run `supabase/migrations/001_accounts_and_palettes.sql` in its SQL editor. Add the project URL and public anon key as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in local development and Vercel.
+Copy `.env.example` to `.env.local`, create a Supabase project, and run `supabase/migrations/001_accounts_and_palettes.sql` in its SQL editor. Add the project URL and public publishable key as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in local development and Vercel.
 
 Enable Google under **Supabase Authentication → Providers**, then add the Supabase callback URL to the Google OAuth client. Add both the local URL and production URL to Supabase Authentication's allowed redirect URLs.
 
