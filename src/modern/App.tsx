@@ -231,38 +231,38 @@ export default function App() {
   return (
     <div className={presentation ? "app presentation" : "app"}>
       <div className={isLoading ? "loading-screen" : "loading-screen loaded"} aria-hidden={!isLoading}>
-        <span className="loader-mark">✦</span>
+        <span className="loader-mark">âœ¦</span>
         <span className="loader-line" />
         <strong>Preparing your palettes</strong>
       </div>
       <a className="skip-link" href="#main">Skip to workspace</a>
       <header className="topbar">
         <button className="brand" onClick={() => setView("studio")} aria-label="Open Color Palette Studio">
-          <span className="brand-mark" aria-hidden="true">✦</span>
+          <span className="brand-mark" aria-hidden="true">âœ¦</span>
           <span><strong>Color Palette</strong><small>Studio</small></span>
         </button>
         <nav aria-label="Workspace">
           {(["studio", "contrast", "export", "library"] as View[]).map((item) => <button key={item} className={view === item ? "nav-link active" : "nav-link"} onClick={() => setView(item)}>{item}</button>)}
         </nav>
         <div className="top-actions">
-          <button className="icon-button" onClick={undo} disabled={!history.length} aria-label="Undo">↶</button>
-          <button className="icon-button" onClick={redo} disabled={!future.length} aria-label="Redo">↷</button>
-          <button className="button secondary presentation-toggle" onClick={() => setPresentation(!presentation)}>{presentation ? "← Exit presentation" : "Present"}</button>
+          <button className="icon-button" onClick={undo} disabled={!history.length} aria-label="Undo">â†¶</button>
+          <button className="icon-button" onClick={redo} disabled={!future.length} aria-label="Redo">â†·</button>
+          <button className="button secondary presentation-toggle" onClick={() => setPresentation(!presentation)}>{presentation ? "â† Exit presentation" : "Present"}</button>
           <button className="button secondary new-palette" onClick={createPalette}>+ New palette</button>
-          <button className="button primary" onClick={share} disabled={isSharing}>{isSharing ? <><span className="spinner" /> Sharing…</> : "Share palette"}</button>
-          {account ? <div className="account-chip"><span className="account-avatar" aria-hidden="true">{accountInitial}</span><span className="account-copy"><strong>{accountName}</strong><small>Private workspace</small></span><button onClick={closeAccount}>Sign out</button></div> : <button className="button google-button" onClick={openGoogleSignIn}><GoogleMark />Sign in with Google</button>}
+          <button className="button primary" onClick={share} disabled={isSharing}>{isSharing ? <><span className="spinner" /> Sharingâ€¦</> : "Share palette"}</button>
+          {account ? <div className="account-chip"><span className="account-avatar" aria-hidden="true">{accountInitial}</span><span className="account-copy"><strong>{accountName}</strong><small>Private workspace</small></span><button onClick={closeAccount}>Sign out</button></div> : <button className="button google-button" onClick={openGoogleSignIn}><GoogleMark />Sign in</button>}
         </div>
       </header>
 
       <main id="main" className="workspace">
         <aside className="sidebar" aria-label="Palettes">
           <div className="sidebar-heading"><span>Palettes</span><small>{state.palettes.length}</small></div>
-          <label className="search"><span className="sr-only">Search palettes</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search palettes…" /></label>
+          <label className="search"><span className="sr-only">Search palettes</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search palettesâ€¦" /></label>
           <div className="palette-list">
             {visiblePalettes.map((palette) => (
               <button key={palette.id} className={palette.id === active.id ? "palette-item selected" : "palette-item"} onClick={() => { setState((current) => ({ ...current, activePaletteId: palette.id })); setView("studio"); }}>
                 <span className="mini-colors">{palette.colors.slice(0, 5).map((color) => <i key={color.id} style={{ background: color.value }} />)}</span>
-                <span><strong>{palette.name}</strong><small>{palette.collection} · {palette.colors.length} colors</small></span>
+                <span><strong>{palette.name}</strong><small>{palette.collection} Â· {palette.colors.length} colors</small></span>
               </button>
             ))}
           </div>
@@ -310,7 +310,7 @@ function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, 
   return <>
     <div className="content-header">
       <div className="palette-meta">
-        <div className="meta-heading"><span className="eyebrow">Active palette</span><span className="edit-hint">✎ Click a field to edit</span></div>
+        <div className="meta-heading"><span className="eyebrow">Active palette</span><span className="edit-hint">âœŽ Click a field to edit</span></div>
         <label className="editable-field title-field"><span>Palette name</span><input className="title-input" value={palette.name} onChange={(event) => onMeta("name", event.target.value)} aria-label="Palette name" title="Edit palette name" /></label>
         <label className="editable-field description-field"><span>Description</span><input className="description-input" value={palette.description} onChange={(event) => onMeta("description", event.target.value)} aria-label="Palette description" title="Edit palette description" /></label>
       </div>
@@ -329,7 +329,7 @@ function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, 
         return <article className="color-card" key={color.id}>
           <button className="swatch" style={{ background: preview, color: text }} onClick={() => onCopy(formatColor(color.value, format))} aria-label={`Copy ${color.name} as ${format}`}><span>Copy</span><strong>{formatColor(color.value, format)}</strong></button>
           <div className="color-fields"><input value={color.name} onChange={(event) => onColor(color.id, { name: event.target.value })} aria-label={`Name for ${color.value}`} /><label className="color-input"><input type="color" value={color.value} onChange={(event) => onColor(color.id, { value: event.target.value.toUpperCase() })} /><input value={color.value} onChange={(event) => { const value = normalizeHex(event.target.value); if (value) onColor(color.id, { value }); }} aria-label={`Hex value for ${color.name}`} /></label></div>
-          <div className="card-actions"><button onClick={() => onMove(index, -1)} disabled={index === 0} aria-label={`Move ${color.name} left`}>←</button><button onClick={() => onMove(index, 1)} disabled={index === palette.colors.length - 1} aria-label={`Move ${color.name} right`}>→</button><button onClick={() => onRemove(color.id)} disabled={palette.colors.length <= 2} aria-label={`Delete ${color.name}`}>Delete</button></div>
+          <div className="card-actions"><button onClick={() => onMove(index, -1)} disabled={index === 0} aria-label={`Move ${color.name} left`}>â†</button><button onClick={() => onMove(index, 1)} disabled={index === palette.colors.length - 1} aria-label={`Move ${color.name} right`}>â†’</button><button onClick={() => onRemove(color.id)} disabled={palette.colors.length <= 2} aria-label={`Delete ${color.name}`}>Delete</button></div>
         </article>;
       })}
     </div>
@@ -338,7 +338,7 @@ function Studio({ palette, format, vision, onFormat, onVision, onMeta, onColor, 
 }
 
 function Contrast({ palette }: { palette: Palette }) {
-  return <><div className="content-header"><div><span className="eyebrow">Accessibility lab</span><h1>Contrast matrix</h1><p>WCAG ratios for every foreground and background combination. AA requires 4.5:1 for body text and 3:1 for large text.</p></div></div><div className="matrix-wrap"><table className="matrix"><thead><tr><th>Foreground ↓ / Background →</th>{palette.colors.map((color) => <th key={color.id}>{color.name}</th>)}</tr></thead><tbody>{palette.colors.map((foreground) => <tr key={foreground.id}><th>{foreground.name}</th>{palette.colors.map((background) => { const ratio = contrastRatio(foreground.value, background.value); return <td key={background.id} style={{ background: background.value, color: foreground.value }}><strong>{ratio.toFixed(2)}</strong><small>{ratio >= 7 ? "AAA" : ratio >= 4.5 ? "AA" : ratio >= 3 ? "Large" : "Fail"}</small></td>; })}</tr>)}</tbody></table></div><section className="suggestions"><span className="eyebrow">Recommended pairs</span><h2>Accessible combinations</h2><div className="pair-grid">{palette.colors.flatMap((foreground) => palette.colors.map((background) => ({ foreground, background, ratio: contrastRatio(foreground.value, background.value) }))).filter((pair) => pair.foreground.id !== pair.background.id && pair.ratio >= 4.5).sort((a, b) => b.ratio - a.ratio).slice(0, 6).map((pair) => <article className="pair" key={`${pair.foreground.id}-${pair.background.id}`} style={{ background: pair.background.value, color: pair.foreground.value }}><strong>{pair.foreground.name}</strong><span>on {pair.background.name}</span><small>{pair.ratio.toFixed(2)}:1 · {pair.ratio >= 7 ? "AAA" : "AA"}</small></article>)}</div></section></>;
+  return <><div className="content-header"><div><span className="eyebrow">Accessibility lab</span><h1>Contrast matrix</h1><p>WCAG ratios for every foreground and background combination. AA requires 4.5:1 for body text and 3:1 for large text.</p></div></div><div className="matrix-wrap"><table className="matrix"><thead><tr><th>Foreground â†“ / Background â†’</th>{palette.colors.map((color) => <th key={color.id}>{color.name}</th>)}</tr></thead><tbody>{palette.colors.map((foreground) => <tr key={foreground.id}><th>{foreground.name}</th>{palette.colors.map((background) => { const ratio = contrastRatio(foreground.value, background.value); return <td key={background.id} style={{ background: background.value, color: foreground.value }}><strong>{ratio.toFixed(2)}</strong><small>{ratio >= 7 ? "AAA" : ratio >= 4.5 ? "AA" : ratio >= 3 ? "Large" : "Fail"}</small></td>; })}</tr>)}</tbody></table></div><section className="suggestions"><span className="eyebrow">Recommended pairs</span><h2>Accessible combinations</h2><div className="pair-grid">{palette.colors.flatMap((foreground) => palette.colors.map((background) => ({ foreground, background, ratio: contrastRatio(foreground.value, background.value) }))).filter((pair) => pair.foreground.id !== pair.background.id && pair.ratio >= 4.5).sort((a, b) => b.ratio - a.ratio).slice(0, 6).map((pair) => <article className="pair" key={`${pair.foreground.id}-${pair.background.id}`} style={{ background: pair.background.value, color: pair.foreground.value }}><strong>{pair.foreground.name}</strong><span>on {pair.background.name}</span><small>{pair.ratio.toFixed(2)}:1 Â· {pair.ratio >= 7 ? "AAA" : "AA"}</small></article>)}</div></section></>;
 }
 
 function ExportPanel({ palette, json, onCopy }: { palette: Palette; json: string; onCopy: (value: string, message?: string) => void }) {
