@@ -4,9 +4,9 @@ A modern React workspace for creating, testing, privately saving, sharing, and e
 
 [**Open the production app**](https://color-pallet-drab.vercel.app) | [Architecture](./docs/ARCHITECTURE.md) | [Modernization audit](./docs/AUDIT.md) | [Roadmap](./ROADMAP.md)
 
-## Project status
+## Current release
 
-The planned modernization is complete for the current release. The original palette workflow has been rebuilt with a responsive interface, strict data validation, professional accessibility tools, sharing, version history, exports, automated tests, CI, and a production deployment.
+Color Palette Studio is deployed and operational. Google authentication, private per-user palettes, Supabase persistence, read-only sharing, accessibility tooling, exports, version history, automated tests, CI, and responsive production UI are implemented.
 
 ## Features
 
@@ -37,22 +37,34 @@ The planned modernization is complete for the current release. The original pale
 - Export CSS custom properties, portable JSON, and W3C-shaped design tokens
 - Download export files or copy their contents directly
 
+### Accounts and ownership
+
+- Authenticate with Google through Supabase Auth
+- Load only palettes belonging to the signed-in user
+- Enforce ownership in Postgres with row-level security
+- Automatically save changes to the user's cloud workspace
+- Sign out without exposing another user's palettes
+- View the shared example without an account
+
 ## Interface
 
 The current UI uses React-inspired cyan accents, compact palette cards, clear editable metadata fields, smooth motion, subtle depth, responsive layouts, and stable tab transitions. Motion is removed when the operating system requests reduced motion.
 
 ## Technology
 
-| Area | Stack |
+| Area | Technology and purpose |
 | :--- | :--- |
-| UI | React 19, native CSS |
+| Interface | React 19 components and hooks |
+| Styling | Native responsive CSS, design tokens, and reduced-motion support |
 | Language | Strict TypeScript |
-| Build | Vite 6 |
-| Validation | Runtime palette schema validation |
-| Testing | Vitest, Testing Library, axe-core |
+| Build | Vite 6 with lazy authentication loading and bundle budgets |
+| Authentication | Supabase Auth with Google OAuth |
+| Database | Supabase Postgres with row-level security |
+| Sharing | Public read-only snapshots addressed by UUID |
+| Validation | Runtime validation before import or cloud hydration |
+| Testing | Vitest, Testing Library, jsdom, and axe-core |
 | Automation | GitHub Actions |
 | Hosting | Vercel |
-| Accounts and data | Supabase Auth, Postgres, and row-level security |
 
 ## Run locally
 
